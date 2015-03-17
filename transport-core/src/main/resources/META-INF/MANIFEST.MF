@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Archiver-Version: Plexus Archiver
+Created-By: Apache Maven
+Built-By: jinzhong.zhang
+Build-Jdk: 1.7.0_51
+Bundle-Description: The transport framework
+Bundle-Version: 0.5.0
+Implementation-Version: 0.5.0
+Implementation-Title: transport
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: transport
+Bundle-Name: transport-api
+Bundle-Vendor: zebbra.org
+Bundle-RequiredExecutionEnvironment: J2SE-1.6
