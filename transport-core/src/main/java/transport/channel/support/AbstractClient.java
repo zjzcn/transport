@@ -15,23 +15,9 @@
  */
 package transport.channel.support;
 
-import java.net.InetSocketAddress;
-import java.net.URL;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import transport.Constants;
-import transport.Version;
+import transport.util.Version;
 import transport.channel.Channel;
 import transport.channel.ChannelException;
 import transport.channel.ChannelHandler;
@@ -40,12 +26,17 @@ import transport.util.ExecutorUtil;
 import transport.util.NamedThreadFactory;
 import transport.util.NetUtils;
 
-/**
- * AbstractClient
- * 
- * @author qian.lei
- * @author chao.liuc
- */
+import java.net.InetSocketAddress;
+import java.net.URL;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 public abstract class AbstractClient extends AbstractEndpoint implements Client {
     
     private static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
@@ -241,7 +232,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         Channel channel = getChannel();
         //TODO getChannel返回的状态是否包含null需要改进
         if (channel == null || ! channel.isConnected()) {
-//          throw new ChannelException(this, "message can not send, because channel is closed . url:" + getUrl());
+//          throw new ChannelException(this, "message can not send, because channel is closed .");
         }
         channel.send(message, sent);
     }

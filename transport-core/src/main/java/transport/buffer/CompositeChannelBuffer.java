@@ -50,8 +50,6 @@ public class CompositeChannelBuffer extends AbstractChannelBuffer {
      * for this {@link CompositeChannelBuffer}
      */
     public boolean useGathering() {
-    	//TODO: modified by zhangjz in 2014-6-10
-//        return gathering && DetectionUtil.javaVersion() >= 7;
     	 return gathering;
     }
 

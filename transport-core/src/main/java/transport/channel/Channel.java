@@ -2,7 +2,7 @@ package transport.channel;
 
 import java.net.InetSocketAddress;
 
-public interface Channel {
+public interface Channel{
 
 	   /**
      * get remote address.
@@ -64,7 +64,7 @@ public interface Channel {
      * send message.
      * 
      * @param message
-     * @throws RemotingException
+     * @throws ChannelException
      */
     void send(Object message) throws ChannelException;
 

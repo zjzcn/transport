@@ -1,6 +1,6 @@
 package transport.util;
 
-public final class Assert {
+public abstract class Assert {
 
 	public static void isTrue(boolean expression, String message) {
 		if (!expression) {
@@ -32,6 +32,16 @@ public final class Assert {
 		notNull(object, "[Assertion failed] - this argument is required; it must not be null");
 	}
 
+	public static void hasLength(String text, String message) {
+		if (text==null || text.isEmpty()) {
+			throw new IllegalArgumentException(message);
+		}
+	}
+
+	public static void hasLength(String text) {
+		hasLength(text, "[Assertion failed] - this String argument must have length; it must not be null or empty");
+	}
+
 	public static void hasText(String text, String message) {
 		if (text==null || text.isEmpty())  {
 			throw new IllegalArgumentException(message);
@@ -51,6 +61,17 @@ public final class Assert {
 		if (subType == null || !superType.isAssignableFrom(subType)) {
 			throw new IllegalArgumentException(message + subType + " is not assignable to " + superType);
 		}
+	}
+
+
+	public static void state(boolean expression, String message) {
+		if (!expression) {
+			throw new IllegalStateException(message);
+		}
+	}
+
+	public static void state(boolean expression) {
+		state(expression, "[Assertion failed] - this state invariant must be true");
 	}
 
 }

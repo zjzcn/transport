@@ -1,15 +1,12 @@
 package transport.channel;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Collection;
-
-import transport.Param;
 
 public interface Server extends Endpoint{
 
-	void bind(Param param) throws Exception;
-	
-    boolean isBound();
+	void bind(SocketAddress localAddress);
 
     Collection<Channel> getChannels();
 

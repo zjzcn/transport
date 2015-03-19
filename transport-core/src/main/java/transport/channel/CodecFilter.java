@@ -16,5 +16,8 @@ public abstract class CodecFilter extends ChannelFilterAdapter{
 	protected abstract Object decode(Channel channel, Object message);
 	
 	protected abstract Object encode(Channel channel, Object message);
-	
+
+    public enum CodecResult {
+        REPLAY_INPUT, SKIP_INPUT
+    }
 }

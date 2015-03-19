@@ -8,9 +8,10 @@ import java.lang.annotation.Target;
 
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
+@Target({ElementType.METHOD})
 public @interface HandlerMapping {
 
-	String value() default "";
-	
+    String protocol();
+    String msgId();
+    String version();
 }

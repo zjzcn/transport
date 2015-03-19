@@ -1,19 +1,16 @@
 package transport.channel.support.netty;
 
-import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import org.jboss.netty.channel.ChannelFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import transport.Constants;
 import transport.channel.ChannelException;
-import transport.channel.ChannelHandler;
 import transport.channel.support.AbstractChannel;
 import transport.util.Assert;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class NettyChannel extends AbstractChannel {
 
@@ -22,6 +19,8 @@ public class NettyChannel extends AbstractChannel {
     private static final ConcurrentMap<org.jboss.netty.channel.Channel, NettyChannel> channelMap = new ConcurrentHashMap<org.jboss.netty.channel.Channel, NettyChannel>();
 
     private final org.jboss.netty.channel.Channel channel;
+
+    private SocketAddress remoteAddress;
 
     private NettyChannel(org.jboss.netty.channel.Channel channel){
     	Assert.notNull(channel, "netty channel == null");
@@ -38,9 +37,7 @@ public class NettyChannel extends AbstractChannel {
         NettyChannel ret = channelMap.get(ch);
         if (ret == null) {
             NettyChannel nc = new NettyChannel(ch);
-            if (ch.isConnected()) {
-                ret = channelMap.putIfAbsent(ch, nc);
-            }
+            ret = channelMap.putIfAbsent(ch, nc);
             if (ret == null) {
                 ret = nc;
             }
@@ -61,6 +58,9 @@ public class NettyChannel extends AbstractChannel {
 
     @Override
     public InetSocketAddress getRemoteAddress() {
+        if(channel.getRemoteAddress() == null){
+            return (InetSocketAddress)remoteAddress;
+        }
         return (InetSocketAddress) channel.getRemoteAddress();
     }
 
@@ -73,7 +73,8 @@ public class NettyChannel extends AbstractChannel {
         boolean success = true;
         int timeout = 0;
         try {
-            ChannelFuture future = channel.write(message);
+            System.out.println(getRemoteAddress());
+            ChannelFuture future = channel.write(message, getRemoteAddress());
             if (sent) {
 //                timeout = getUrl().getPositiveParameter(Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);
                 success = future.await(1000);
@@ -96,11 +97,6 @@ public class NettyChannel extends AbstractChannel {
 	@Override
 	public void close(int timeout) {
 		close();
-	}
-
-	@Override
-	public boolean isClosed() {
-		return channel.isConnected();
 	}
 
 	@Override
@@ -150,4 +146,9 @@ public class NettyChannel extends AbstractChannel {
         return "NettyChannel [channel=" + channel + "]";
     }
 
+    //Netty使用UDP时：Channel.getRemoteAddress()返回null，而Event可以返回客户端地址，Channel.isConnected()返回false；
+    // 所以在不指定地址时，发送时无法找到客户端地址（NotYetConnectedException）。
+    void setRemoteAddress(SocketAddress remoteAddress){
+        this.remoteAddress = remoteAddress;
+    }
 }

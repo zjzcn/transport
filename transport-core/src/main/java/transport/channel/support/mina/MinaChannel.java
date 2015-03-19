@@ -7,7 +7,6 @@ import org.apache.mina.core.session.IoSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import transport.Constants;
 import transport.channel.Channel;
 import transport.channel.ChannelException;
 import transport.channel.ChannelHandler;
@@ -63,8 +62,6 @@ public class MinaChannel extends AbstractChannel {
 
 	@Override
 	public void send(Object message, boolean sent) throws ChannelException {
-//	       super.send(message, sent);
-	        
 	        boolean success = true;
 	        int timeout = 0;
 	        try {
@@ -102,11 +99,5 @@ public class MinaChannel extends AbstractChannel {
 	@Override
 	public void close(int timeout) {
 		close();
-	}
-
-	@Override
-	public boolean isClosed() {
-		// TODO Auto-generated method stub
-		return false;
 	}
 }

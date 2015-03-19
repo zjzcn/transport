@@ -26,9 +26,4 @@ public interface ChannelFilter{
     void exceptionCaught(Channel channel, Throwable exception) throws ChannelException;
 
     Object filterWrite(Channel channel, Object message) throws ChannelException;
-    
-
-    enum FilterResult {
-        REPLAY_INPUT, SKIP_INPUT
-    }
 }

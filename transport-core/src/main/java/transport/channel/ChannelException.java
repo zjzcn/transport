@@ -2,7 +2,7 @@ package transport.channel;
 
 import java.net.InetSocketAddress;
 
-public class ChannelException extends RuntimeException {
+public class ChannelException extends TransportException {
 
     private static final long serialVersionUID = -3160452149606778709L;
 

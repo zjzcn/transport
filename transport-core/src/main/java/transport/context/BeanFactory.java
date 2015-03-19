@@ -32,7 +32,7 @@ public class BeanFactory<T> {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static <T> BeanFactory<T> getInstence(Class<T> interfaceClass){
+	public static <T> BeanFactory<T> getInstance(Class<T> interfaceClass){
 		Assert.notNull(interfaceClass, "Bean interfaceClass == null");
         Assert.isTrue(interfaceClass.isInterface(), "Bean interfaceClass(" + interfaceClass + ") is not interface!");
         
@@ -117,7 +117,7 @@ public class BeanFactory<T> {
 	}
 	
 	public static void main(String[] args) {
-		Server s = BeanFactory.getInstence(Server.class).getBean("mina.udp.9090");
+		Server s = BeanFactory.getInstance(Server.class).getBean("mina.udp.9090");
 		System.out.println(s);
 	}
 }

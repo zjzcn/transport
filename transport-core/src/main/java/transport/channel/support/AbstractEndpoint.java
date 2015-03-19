@@ -1,22 +1,24 @@
 package transport.channel.support;
 
-import transport.channel.ChannelHandler;
-import transport.channel.Endpoint;
-import transport.channel.FilterChain;
+import transport.channel.*;
 
 public abstract class AbstractEndpoint implements Endpoint {
 
-	private FilterChain filterChain = new FilterChain();
+	private FilterChain filterChain = new DefaultFilterChain();
 	
 	private ChannelHandler handler;
-	
+
+    private ChannelConfig channelConfig = new DefaultChannelConfig();
+
+    private volatile boolean closed;
+
 	@Override
-	public void setHandler(ChannelHandler handler){
+	public void setChannelHandler(ChannelHandler handler){
 		this.handler = handler;
 	}
 	
 	@Override
-	public ChannelHandler getHandler(){
+	public ChannelHandler getChannelHandler(){
 		return handler;
 	}
 	
@@ -29,4 +31,24 @@ public abstract class AbstractEndpoint implements Endpoint {
 	public void setFilterChain(FilterChain filterChain){
 		this.filterChain = filterChain;
 	}
+
+    @Override
+    public ChannelConfig getChannelConfig(){
+        return channelConfig;
+    }
+
+    @Override
+    public void send(Object message) {
+        send(message, false);
+    }
+
+    @Override
+    public void close() {
+        closed = true;
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed;
+    }
 }

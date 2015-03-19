@@ -1,147 +1,146 @@
 package transport.channel.support.netty;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
+import org.jboss.netty.bootstrap.Bootstrap;
+import org.jboss.netty.bootstrap.ConnectionlessBootstrap;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.logging.LoggingHandler;
 import org.jboss.netty.logging.InternalLoggerFactory;
 import org.jboss.netty.logging.Slf4JLoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import transport.Param;
-import transport.buffer.ChannelBuffer;
-import transport.buffer.ChannelBuffers;
 import transport.channel.Channel;
-import transport.channel.ChannelException;
 import transport.channel.ChannelFilter;
-import transport.channel.ChannelHandlerAdapter;
-import transport.channel.DecoderFilter;
-import transport.channel.EncoderFilter;
-import transport.channel.Server;
 import transport.channel.support.AbstractServer;
 import transport.util.NamedThreadFactory;
+import transport.util.NetUtils;
 
-public class NettyServer extends AbstractServer {
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class NettyServer extends AbstractServer{
     
     private static final Logger logger = LoggerFactory.getLogger(NettyServer.class);
 
     private Map<String, Channel>  channels; // <ip:port, channel>
 
-    private ServerBootstrap                 bootstrap;
+    private Bootstrap bootstrap;
 
     private org.jboss.netty.channel.Channel channel;
     
 	@Override
-	public void bind(Param param) throws IOException{
-
-
-        ExecutorService boss = Executors.newCachedThreadPool(new NamedThreadFactory("NettyServerBoss", false));
+    protected void doOpen(SocketAddress localAddress, String tcpOrUdp, final boolean log) {
         ExecutorService worker = Executors.newCachedThreadPool(new NamedThreadFactory("NettyServerWorker", false));
-        ChannelFactory channelFactory = new NioServerSocketChannelFactory(boss, worker);
-        bootstrap = new ServerBootstrap(channelFactory);
-        
-        final NettyHandler nettyHandler = new NettyHandler(this.getHandler());
-//        channels = nettyHandler.getChannels();
+        //tcp or udp
+        if("tcp".equals(tcpOrUdp)){
+            ExecutorService boss = Executors.newCachedThreadPool(new NamedThreadFactory("NettyServerBoss", false));
+            ChannelFactory channelFactory = new NioServerSocketChannelFactory(boss, worker);
+            bootstrap = new ServerBootstrap(channelFactory);
+        } else if("udp".equals(tcpOrUdp)){
+            ChannelFactory channelFactory = new NioDatagramChannelFactory(worker);
+            bootstrap = new ConnectionlessBootstrap(channelFactory);
+        } else {
+            throw new IllegalArgumentException("Option tcpOrUdp value must be 'tcp' or 'udp'!");
+        }
+
+        //netty pipeline
         bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
             public ChannelPipeline getPipeline() {
             	ChannelPipeline pipeline = Channels.pipeline();
-            	InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
-            	pipeline.addLast("logger", new LoggingHandler());
+                //logging
+                if(log){
+                    InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
+                    pipeline.addLast("logger", new LoggingHandler());
+                }
+                //filters
                 Iterator<ChannelFilter> it = NettyServer.this.getFilterChain().iterator();
                 while(it.hasNext()){
                 	ChannelFilter filter = it.next();
                 	pipeline.addLast(filter.getName(), new NettyFilter(filter));
                 }
+                //handler
+                NettyHandler nettyHandler = new NettyHandler(NettyServer.this.getChannelHandler());
+                channels = nettyHandler.getChannels();
                 pipeline.addLast("handler", nettyHandler);
                 return pipeline;
             }
         });
         // bind
-        channel = bootstrap.bind(new InetSocketAddress(9090));
-        logger.info("Server has started! Listening on:"+channel.getLocalAddress());
+        if(bootstrap instanceof ServerBootstrap){
+            channel = ((ServerBootstrap)bootstrap).bind(localAddress);
+        } else if(bootstrap instanceof ConnectionlessBootstrap){
+            channel = ((ConnectionlessBootstrap)bootstrap).bind(localAddress);
+        }
 	}
 
-	public static void main(String[] args) throws Exception {
-		Server server = new NettyServer();
-		server.getFilterChain().addLast("e", new DecoderFilter() {
-			@Override
-			protected Object decode(Channel channel, Object msg) {
-				if(msg instanceof ChannelBuffer){
-					ChannelBuffer buffer = (ChannelBuffer)msg;
-					System.out.println("filter received");
-					byte[] bytes = new byte[buffer.readableBytes()];
-					buffer.readBytes(bytes);
-					return new String(bytes);
-				} 
+    @Override
+    protected void doClose() {
+        try {
+            if (channel != null) {
+                // unbind.
+                channel.close();
+            }
+        } catch (Throwable e) {
+            logger.warn(e.getMessage(), e);
+        }
+        try {
+            Collection<Channel> channels = getChannels();
+            if (channels != null && channels.size() > 0) {
+                for (Channel channel : channels) {
+                    try {
+                        channel.close();
+                    } catch (Throwable e) {
+                        logger.warn(e.getMessage(), e);
+                    }
+                }
+            }
+        } catch (Throwable e) {
+            logger.warn(e.getMessage(), e);
+        }
+        try {
+            if (bootstrap != null) {
+                // release external resource.
+                bootstrap.releaseExternalResources();
+            }
+        } catch (Throwable e) {
+            logger.warn(e.getMessage(), e);
+        }
+        try {
+            if (channels != null) {
+                channels.clear();
+            }
+        } catch (Throwable e) {
+            logger.warn(e.getMessage(), e);
+        }
+    }
 
-				return msg;
-			}
-		});
-		
-		server.getFilterChain().addLast("f", new DecoderFilter() {
-			@Override
-			protected Object decode(Channel channel, Object msg) {
-				if(msg instanceof ChannelBuffer){
-					ChannelBuffer buffer = (ChannelBuffer)msg;
-					System.out.println("filter received");
-					byte[] bytes = new byte[buffer.readableBytes()];
-					buffer.readBytes(bytes);
-					return new String(bytes);
-				}
-				return msg+"kkkkkkk";
-			}
-		});
-		
+    @Override
+    public Collection<Channel> getChannels() {
+        Collection<Channel> chs = new HashSet<Channel>();
+        for (Channel channel : this.channels.values()) {
+            if (channel.isConnected()) {
+                chs.add(channel);
+            } else {
+                channels.remove(NetUtils.toAddressString(channel.getRemoteAddress()));
+            }
+        }
+        return chs;
+    }
 
-		server.getFilterChain().addLast("t", new EncoderFilter() {
-			@Override
-			protected Object encode(Channel channel, Object msg) {
-				if(msg instanceof ChannelBuffer){
-					ChannelBuffer buffer = (ChannelBuffer)msg;
-					System.out.println("filter received");
-					byte[] bytes = new byte[buffer.readableBytes()];
-					buffer.readBytes(bytes);
-					return new String(bytes);
-				}
-				return ChannelBuffers.wrappedBuffer((msg+" is a ack is a ack").getBytes());
-			}
-		});
-		
-		server.getFilterChain().addLast("g", new EncoderFilter() {
-			@Override
-			protected Object encode(Channel channel, Object msg) {
-				if(msg instanceof ChannelBuffer){
-					ChannelBuffer buffer = (ChannelBuffer)msg;
-					System.out.println("filter received");
-					byte[] bytes = new byte[buffer.readableBytes()];
-					buffer.readBytes(bytes);
-					return new String(bytes);
-				}
-				return msg+" is a ack";
-			}
-		});
-		
-		server.setHandler(new ChannelHandlerAdapter() {
-			@Override
-			public void messageReceived(Channel channel, Object message)
-					throws ChannelException {
-				System.out.println("handler received");
-				System.out.println(message);
-				channel.send("hehe", false);
-			}
-		});
-		
-		server.bind(null);
-	}
+    @Override
+    public Channel getChannel(InetSocketAddress remoteAddress) {
+        return channels.get(NetUtils.toAddressString(remoteAddress));
+    }
+
 }

@@ -1,6 +1,7 @@
 package transport.channel;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 
 public interface Endpoint {
 
@@ -8,9 +9,9 @@ public interface Endpoint {
 	
 	FilterChain getFilterChain();
 	
-	void setHandler(ChannelHandler handler);
+	void setChannelHandler(ChannelHandler handler);
 	
-    ChannelHandler getHandler();
+    ChannelHandler getChannelHandler();
 
     InetSocketAddress getLocalAddress();
     
@@ -23,5 +24,7 @@ public interface Endpoint {
     void close(int timeout);
     
     boolean isClosed();
+
+    ChannelConfig getChannelConfig();
 
 }

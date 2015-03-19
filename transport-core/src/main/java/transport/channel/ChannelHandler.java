@@ -1,5 +1,7 @@
 package transport.channel;
 
+import java.lang.reflect.InvocationTargetException;
+
 public interface ChannelHandler {
 	
     void channelConnected(Channel channel) throws ChannelException;
@@ -16,8 +18,7 @@ public interface ChannelHandler {
 
     /**
      * on message received.
-     * 
-     * @param channel channel.
+     *  @param channel channel.
      * @param message message.
      */
     void messageReceived(Channel channel, Object message) throws ChannelException;

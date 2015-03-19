@@ -13,6 +13,7 @@ import transport.buffer.ChannelBuffers;
 import transport.buffer.DynamicChannelBuffer;
 import transport.channel.Channel;
 import transport.channel.ChannelFilter;
+import transport.channel.CodecFilter;
 import transport.util.Assert;
 import transport.util.HexUtils;
 
@@ -27,7 +28,23 @@ final class MinaFilter extends IoFilterAdapter {
         Assert.notNull(filter, "filter == null");
         this.filter = filter;
     }
-    
+
+    @Override
+    public void sessionOpened(NextFilter nextFilter, IoSession session) throws Exception {
+        MinaChannel channel = MinaChannel.getChannel(session);
+        filter.channelConnected(channel);
+
+        nextFilter.sessionOpened(session);
+    }
+
+    @Override
+    public void sessionClosed(NextFilter nextFilter, IoSession session) throws Exception {
+        MinaChannel channel = MinaChannel.getChannel(session);
+        filter.channelDisconnected(channel);
+
+        nextFilter.sessionClosed(session);
+    }
+
     @Override
     public void messageReceived(NextFilter nextFilter, IoSession session, Object in) throws Exception {
         MinaChannel channel = MinaChannel.getChannel(session);
@@ -67,7 +84,7 @@ final class MinaFilter extends IoFilterAdapter {
         		
         		frame.markReaderIndex();
         		msg = filter.messageReceived(channel, frame);
-        		if (msg == ChannelFilter.FilterResult.REPLAY_INPUT) {
+        		if (msg == CodecFilter.CodecResult.REPLAY_INPUT) {
         			frame.resetReaderIndex();
         			break;
         		} else {
@@ -85,28 +102,6 @@ final class MinaFilter extends IoFilterAdapter {
         	}
         	MinaChannel.removeChannelIfDisconnected(session);
         }
-    	
-//    	Object out = null;
-//    	try {
-//    		Channel channel = MinaChannel.getChannel(session);
-//    		if (message instanceof IoBuffer) {
-//    			IoBuffer in = (IoBuffer) message;
-//    			while (in.hasRemaining()) {
-//    				ChannelBuffer frame = ChannelBuffers.directBuffer(in.remaining());
-//    				frame.writeBytes(in.buf());
-//    				try {
-//    					out = filter.messageReceived(channel, frame);
-//    				} catch (Throwable t) {
-//    					nextFilter.exceptionCaught(session, t);
-//    				}
-//    			}
-//    		} else {
-//    			out = filter.messageReceived(channel, message);
-//    		}
-//    	} finally {
-//    		MinaChannel.removeChannelIfDisconnected(session);
-//    	}
-//    	nextFilter.messageReceived(session, out);
     }
 
     @Override

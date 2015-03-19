@@ -2,15 +2,13 @@ package transport.channel.support.netty;
 
 import java.nio.ByteBuffer;
 
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
+import org.jboss.netty.channel.*;
 
 import transport.buffer.ChannelBuffer;
 import transport.buffer.ChannelBuffers;
 import transport.buffer.DynamicChannelBuffer;
 import transport.channel.ChannelFilter;
+import transport.channel.CodecFilter;
 import transport.util.Assert;
 import transport.util.HexUtils;
 
@@ -27,13 +25,32 @@ final class NettyFilter extends SimpleChannelHandler{
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) throws Exception {
+    public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
         NettyChannel channel = NettyChannel.getChannel(ctx.getChannel());
-        Object in = event.getMessage();
+        filter.channelConnected(channel);
+
+        super.channelConnected(ctx, e);
+    }
+
+    @Override
+    public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+        NettyChannel channel = NettyChannel.getChannel(ctx.getChannel());
+        filter.channelDisconnected(channel);
+
+        super.channelDisconnected(ctx, e);
+    }
+
+    @Override
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt){
+        NettyChannel channel = NettyChannel.getChannel(ctx.getChannel());
+        //Netty使用UDP时：Channel.getRemoteAddress()返回null，而Event可以返回客户端地址，Channel.isConnected()返回false；
+        // 所以在不指定地址时，发送时无法找到客户端地址（NotYetConnectedException）。
+        channel.setRemoteAddress(evt.getRemoteAddress());
+        Object in = evt.getMessage();
         Object msg;
         if (!(in instanceof org.jboss.netty.buffer.ChannelBuffer)) {
         	msg = filter.messageReceived(channel, in);
-        	Channels.fireMessageReceived(ctx, msg, event.getRemoteAddress());
+        	Channels.fireMessageReceived(ctx, msg, evt.getRemoteAddress());
             return;
         }
 
@@ -71,12 +88,12 @@ final class NettyFilter extends SimpleChannelHandler{
         		
         		frame.markReaderIndex();
         		msg = filter.messageReceived(channel, frame);
-        		if (msg == ChannelFilter.FilterResult.REPLAY_INPUT) {
+        		if (msg == CodecFilter.CodecResult.REPLAY_INPUT) {
         			frame.resetReaderIndex();
         			break;
         		} else {
         			if (msg != null) {
-        				Channels.fireMessageReceived(ctx, msg, event.getRemoteAddress());
+        				Channels.fireMessageReceived(ctx, msg, evt.getRemoteAddress());
         			}
         		}
         	} 
@@ -93,8 +110,7 @@ final class NettyFilter extends SimpleChannelHandler{
     
     @Override
     public void writeRequested(ChannelHandlerContext ctx, MessageEvent evt) throws Exception {
-        MessageEvent e = (MessageEvent) evt;
-        Object originalMessage = e.getMessage();
+        Object originalMessage = evt.getMessage();
         NettyChannel channel = NettyChannel.getChannel(ctx.getChannel());
         Object handledMessage = filter.filterWrite(channel, originalMessage);
         if (originalMessage == handledMessage) {
@@ -104,9 +120,9 @@ final class NettyFilter extends SimpleChannelHandler{
         		ByteBuffer buf = ((ChannelBuffer)handledMessage).toByteBuffer();
         		org.jboss.netty.buffer.ChannelBuffer nettyBuf = org.jboss.netty.buffer.ChannelBuffers.wrappedBuffer(buf);
         		
-        		Channels.write(ctx, e.getFuture(), nettyBuf, e.getRemoteAddress());
+        		Channels.write(ctx, evt.getFuture(), nettyBuf, evt.getRemoteAddress());
         	} else {
-        		Channels.write(ctx, e.getFuture(), handledMessage, e.getRemoteAddress());
+        		Channels.write(ctx, evt.getFuture(), handledMessage, evt.getRemoteAddress());
         	}
         }
     }

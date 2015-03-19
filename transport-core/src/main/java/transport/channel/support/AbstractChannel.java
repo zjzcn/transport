@@ -9,7 +9,9 @@ import transport.channel.ChannelException;
 public abstract class AbstractChannel implements Channel {
 
     private final Map<String, Object> attributes = new ConcurrentHashMap<String, Object>();
-    
+
+    private volatile boolean closed;
+
 	@Override
     public void send(Object message) throws ChannelException {
         send(message, false);
@@ -42,5 +44,10 @@ public abstract class AbstractChannel implements Channel {
 	@Override
     public void clearAttribute() {
         attributes.clear();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed;
     }
 }
