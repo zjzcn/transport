@@ -110,7 +110,7 @@ public class DefaultProtocolContext implements ProtocolContext {
                                     logger.info(method.getDeclaringClass().getName() + "." + method.getName() + "无入参");
                                 }
                                 EncoderMapping ann = AnnotationUtils.findAnnotation(method, EncoderMapping.class);
-                                String protocol = ann.protocol();
+//                                String protocol = ann.protocol();
                                 String msgId = ann.msgId();
                                 String version = ann.version();
 
@@ -139,7 +139,7 @@ public class DefaultProtocolContext implements ProtocolContext {
                                     logger.info(method.getDeclaringClass().getName() + "." + method.getName() + "无入参");
                                 }
                                 DecoderMapping ann = AnnotationUtils.findAnnotation(method, DecoderMapping.class);
-                                String protocol = ann.protocol();
+//                                String protocol = ann.protocol();
                                 String msgId = ann.msgId();
                                 String version = ann.version();
 
@@ -168,7 +168,7 @@ public class DefaultProtocolContext implements ProtocolContext {
                                     logger.info(method.getDeclaringClass().getName() + "." + method.getName() + "无入参");
                                 }
                                 HandlerMapping ann = AnnotationUtils.findAnnotation(method, HandlerMapping.class);
-                                String protocol = ann.protocol();
+//                                String protocol = ann.protocol();
                                 String msgId = ann.msgId();
                                 String version = ann.version();
 
